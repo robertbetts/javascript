@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<!--
+
+This example demonstrates the capability to copy an image to a device's clipboard and past that image into an
+Javascript enriched HTML5 page where the text is then extracted
+
+Code from the following examples has referenced to build this example:
+
+https://codepen.io/netsi1964/pen/IoJbg ( JavaScript originally from https://gist.github.com/STRd6/5286415)
+https://github.com/naptha/tesseract.js/blob/master/examples/browser/demo.html
+
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OCR Pasted Image</title>
+
+    <link rel='stylesheet' href='https://s3-us-west-2.amazonaws.com/s.cdpn.io/9729/cyborg_bootstrap.min.css'>
+    <style>
+.target {
+  border: solid 1px #aaa;
+  min-height: 200px;
+  width: 30%;
+  margin-top: 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 300ms all;
+  position: relative;
+}
+
+.contain {
+    background-size: cover;
+  position: relative;
+  z-index: 10;
+  top: 0px;
+  left: 0px;
+}
+textarea {
+  background-color: white;
+}
+.active {
+  box-shadow: 0px 0px 10px 10px rgba(0,0,255,.4);
+}
+
+#log > div {
+    color: #999;
+    border-top: 1px solid #dadada;
+    padding: 9px;
+    display: flex;
+}
+#log > div:first-child {
+    border: 0;
+}
+
+
+.status {
+	min-width: 250px;
+}
+#log {
+    border: 1px solid #dadada;
+    padding: 10px;
+    margin-top: 20px;
+    min-height: 100px;
+}
+body {
+    font-family: sans-serif;
+    margin: 30px;
+}
+
+progress {
+    display: block;
+    width: 100%;
+    transition: opacity 0.5s linear;
+}
+progress[value="1"] {
+    opacity: 0.5;
+}
+</style>
+</head>
+<body>
+
+
+<div class="container fluid">
+	<div class="row">
+		<h1>OCR and image pasted or loaded to a web page</h1>
+	</div>
+	<div class="row">
+		<div class="span4 target"></div>
+		<!--<div class="span4 target"></div>
+		<div class="span4 target"></div>
+		//-->
+	</div>
+	<div class="row">
+
+		<div class="span12">
+			<br />
+			<div class="input-prepend">
+				<span class="add-on">size</span>
+				<input class="span2 size" id="size" type="text" placeholder="size of pasted image">
+			</div>
+
+			<div class="input-prepend">
+				<span class="add-on">type</span>
+				<input class="span2 type" id="type" type="text" placeholder="Image type pasted">
+			</div>
+
+			<div class="input-prepend">
+				<span class="add-on">width</span>
+				<input class="span2 type" id="width" type="text" placeholder="Width">
+			</div>
+
+			<div class="input-prepend">
+				<span class="add-on">height</span>
+				<input class="span2 type" id="height" type="text" placeholder="Height">
+			</div>
+		</div>
+		<div class="span12">
+			<legend>The dataURL of the image <a href="#" onclick="copy()">copy to clipboard</a>.</legend>
+			<textarea id="base64" cols="30" rows="10" class="data span12"></textarea>
+        </div>
+
+        <div class="span12">
+            <select id="langsel" onchange="window.lastFile && recognizeFile(window.lastFile)">
+<option value='afr'     > Afrikaans             </option>
+<option value='ara'     > Arabic                </option>
+<option value='aze'     > Azerbaijani           </option>
+<option value='bel'     > Belarusian            </option>
+<option value='ben'     > Bengali               </option>
+<option value='bul'     > Bulgarian             </option>
+<option value='cat'     > Catalan               </option>
+<option value='ces'     > Czech                 </option>
+<option value='chi_sim' > Chinese               </option>
+<option value='chi_tra' > Traditional Chinese   </option>
+<option value='chr'     > Cherokee              </option>
+<option value='dan'     > Danish                </option>
+<option value='deu'     > German                </option>
+<option value='ell'     > Greek                 </option>
+<option value='eng'     selected> English                </option>
+<option value='enm'     > English (Old)         </option>
+<option value='meme'     > Internet Meme                </option>
+<option value='epo'     > Esperanto             </option>
+<option value='epo_alt' > Esperanto alternative </option>
+<option value='equ'     > Math                  </option>
+<option value='est'     > Estonian              </option>
+<option value='eus'     > Basque                </option>
+<option value='fin'     > Finnish               </option>
+<option value='fra'     > French                </option>
+<option value='frk'     > Frankish              </option>
+<option value='frm'     > French (Old)          </option>
+<option value='glg'     > Galician              </option>
+<option value='grc'     > Ancient Greek         </option>
+<option value='heb'     > Hebrew                </option>
+<option value='hin'     > Hindi                 </option>
+<option value='hrv'     > Croatian              </option>
+<option value='hun'     > Hungarian             </option>
+<option value='ind'     > Indonesian            </option>
+<option value='isl'     > Icelandic             </option>
+<option value='ita'     > Italian               </option>
+<option value='ita_old' > Italian (Old)         </option>
+<option value='jpn'     > Japanese              </option>
+<option value='kan'     > Kannada               </option>
+<option value='kor'     > Korean                </option>
+<option value='lav'     > Latvian               </option>
+<option value='lit'     > Lithuanian            </option>
+<option value='mal'     > Malayalam             </option>
+<option value='mkd'     > Macedonian            </option>
+<option value='mlt'     > Maltese               </option>
+<option value='msa'     > Malay                 </option>
+<option value='nld'     > Dutch                 </option>
+<option value='nor'     > Norwegian             </option>
+<option value='pol'     > Polish                </option>
+<option value='por'     > Portuguese            </option>
+<option value='ron'     > Romanian              </option>
+<option value='rus'     > Russian               </option>
+<option value='slk'     > Slovakian             </option>
+<option value='slv'     > Slovenian             </option>
+<option value='spa'     > Spanish               </option>
+<option value='spa_old' > Old Spanish           </option>
+<option value='sqi'     > Albanian              </option>
+<option value='srp'     > Serbian (Latin)       </option>
+<option value='swa'     > Swahili               </option>
+<option value='swe'     > Swedish               </option>
+<option value='tam'     > Tamil                 </option>
+<option value='tel'     > Telugu                </option>
+<option value='tgl'     > Tagalog               </option>
+<option value='tha'     > Thai                  </option>
+<option value='tur'     > Turkish               </option>
+<option value='ukr'     > Ukrainian             </option>
+<option value='vie'     > Vietnamese            </option>
+</select>
+
+
+            <input type="file" onchange="recognizeFile(window.lastFile=this.files[0])">
+            <div id="log"></div>
+        </div>
+
+
+	</div>
+
+</div>
+
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/2.1.4/tesseract.min.js"></script>
+    <script>
+
+function progressUpdate(packet){
+	var log = document.getElementById('log');
+
+	if(log.firstChild && log.firstChild.status === packet.status){
+		if('progress' in packet){
+			var progress = log.firstChild.querySelector('progress')
+			progress.value = packet.progress
+		}
+	}else{
+		var line = document.createElement('div');
+		line.status = packet.status;
+		var status = document.createElement('div')
+		status.className = 'status'
+		status.appendChild(document.createTextNode(packet.status))
+		line.appendChild(status)
+
+		if('progress' in packet){
+			var progress = document.createElement('progress')
+			progress.value = packet.progress
+			progress.max = 1
+			line.appendChild(progress)
+		}
+
+
+		if(packet.status == 'done'){
+			var pre = document.createElement('pre')
+			pre.appendChild(document.createTextNode(packet.data.data.text))
+			line.innerHTML = ''
+			line.appendChild(pre)
+
+		}
+
+		log.insertBefore(line, log.firstChild)
+	}
+}
+
+async function recognizeFile(file) {
+	document.querySelector("#log").innerHTML = ''
+  const corePath = window.navigator.userAgent.indexOf("Edge") > -1
+    ? '../../node_modules/tesseract.js-core/tesseract-core.asm.js'
+    : '../../node_modules/tesseract.js-core/tesseract-core.wasm.js';
+
+  const lang = document.querySelector('#langsel').value
+  const data = await Tesseract.recognize(file, lang, {
+    //corePath,
+    logger: progressUpdate,
+  });
+  progressUpdate({ status: 'done', data });
+}
+
+async function recognizeImage(image) {
+	document.querySelector("#log").innerHTML = ''
+
+  const lang = document.querySelector('#langsel').value
+  const data = await Tesseract.recognize(image, lang, {
+    logger: progressUpdate,
+  });
+  progressUpdate({ status: 'done', data });
+}
+
+    </script>
+
+    <script>
+// Created by STRd6
+// MIT License
+// jquery.paste_image_reader.js
+(function($) {
+	var defaults;
+	$.event.fix = (function(originalFix) {
+		return function(event) {
+			event = originalFix.apply(this, arguments);
+			if (event.type.indexOf("copy") === 0 || event.type.indexOf("paste") === 0) {
+				event.clipboardData = event.originalEvent.clipboardData;
+			}
+			return event;
+		};
+	})($.event.fix);
+	defaults = {
+		callback: $.noop,
+		matchType: /image.*/
+	};
+	return ($.fn.pasteImageReader = function(options) {
+		if (typeof options === "function") {
+			options = {
+				callback: options
+			};
+		}
+		options = $.extend({}, defaults, options);
+		return this.each(function() {
+			var $this, element;
+			element = this;
+			$this = $(this);
+			return $this.bind("paste", function(event) {
+				var clipboardData, found;
+				found = false;
+				clipboardData = event.clipboardData;
+				return Array.prototype.forEach.call(clipboardData.types, function(type, i) {
+					var file, reader;
+					if (found) {
+						return;
+					}
+					if (
+						type.match(options.matchType) ||
+						clipboardData.items[i].type.match(options.matchType)
+					) {
+						file = clipboardData.items[i].getAsFile();
+						reader = new FileReader();
+						reader.onload = function(evt) {
+							return options.callback.call(element, {
+								dataURL: evt.target.result,
+								event: evt,
+								file: file,
+								name: file.name
+							});
+						};
+						reader.readAsDataURL(file);
+						//snapshoot();
+						return (found = true);
+					}
+				});
+			});
+		});
+	});
+})(jQuery);
+
+var dataURL, filename;
+$("html").pasteImageReader(function(results) {
+	filename = results.filename, dataURL = results.dataURL;
+	$data.text(dataURL);
+	$size.val(results.file.size);
+	$type.val(results.file.type);
+	var img = document.createElement("img");
+	img.src = dataURL;
+	var w = img.width;
+	var h = img.height;
+	$width.val(w);
+	$height.val(h);
+
+    recognizeImage(dataURL)
+
+	return $(".active")
+		.css({
+			backgroundImage: "url(" + dataURL + ")"
+		})
+		.data({ width: w, height: h });
+});
+
+var $data, $size, $type, $width, $height;
+$(function() {
+	$data = $(".data");
+	$size = $(".size");
+	$type = $(".type");
+	$width = $("#width");
+	$height = $("#height");
+	$(".target").on("click", function() {
+		var $this = $(this);
+		var bi = $this.css("background-image");
+		if (bi != "none") {
+			$data.text(bi.substr(4, bi.length - 6));
+		}
+
+		$(".active").removeClass("active");
+		$this.addClass("active");
+
+		$this.toggleClass("contain");
+
+		$width.val($this.data("width"));
+		$height.val($this.data("height"));
+		if ($this.hasClass("contain")) {
+			$this.css({
+				width: $this.data("width"),
+				height: $this.data("height"),
+				"z-index": "10"
+			});
+		} else {
+			$this.css({ width: "", height: "", "z-index": "" });
+		}
+	});
+});
+
+function copy(text) {
+	var t = document.getElementById("base64");
+	t.select();
+	try {
+		var successful = document.execCommand("copy");
+		var msg = successful ? "successfully" : "unsuccessfully";
+		alert("Base64 data coppied " + msg + " to clipboard");
+	} catch (err) {
+		alert("Unable to copy text");
+	}
+}
+    </script>
+
+
+
+
+</body>
+</html>
