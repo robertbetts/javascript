@@ -1,4 +1,4 @@
-# javascript
+# JavaScript
 Collection of Notes, related JavaScript examples and utilities
 
 `In some places the code found here is an extension or adaption or prior work by others. I have endeavored to track 
